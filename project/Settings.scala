@@ -23,9 +23,11 @@ object Settings {
       version := (version in ThisBuild).value,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       javaOptions += "-Dlogback.configurationFile=/src/resources/logback.xml",
-      mainClass in Compile := Some("com.example.instagram.Main")
+      resolvers += Resolver.sonatypeRepo("snapshots")
     )
   }
 
-  val core = List(zioCore, zioStreams)
+
+  val core = List(zioCore, zioStreams, json, dynamoDb)
+  val httpRoutes = List(http) ++ core
 }

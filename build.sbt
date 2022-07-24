@@ -1,23 +1,23 @@
 import sbt._
 import Settings._
 
-lazy val model = project
+lazy val domain = project
   .settings(commonSettings)
   .settings(libraryDependencies ++= core)
 
 lazy val service = project
   .settings(commonSettings)
   .settings(libraryDependencies ++= core)
-  .dependsOn(model)
+  .dependsOn(domain)
 
 lazy val route = project
   .settings(commonSettings)
-  .settings(libraryDependencies ++= core)
+  .settings(libraryDependencies ++= httpRoutes)
   .dependsOn(service)
 
 lazy val server = project
   .settings(commonSettings)
-  .settings(libraryDependencies ++= core)
+  .settings(libraryDependencies ++= httpRoutes)
   .dependsOn(route)
 
 lazy val `avito-desk` = Project("avito-desk", file("."))
@@ -27,13 +27,13 @@ lazy val `avito-desk` = Project("avito-desk", file("."))
   .settings(moduleName := "avito-desk")
   .settings(name := "avito-desk")
   .aggregate(
-    model,
+    domain,
     service,
     route,
     server
   )
   .dependsOn(
-    model,
+    domain,
     service,
     route,
     server
