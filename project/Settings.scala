@@ -27,7 +27,9 @@ object Settings {
     )
   }
 
-
-  val core = List(zioCore, zioStreams, json, dynamoDb)
+  val domain = List(json)
+  val repos = List(quillJdbc, quillZio, h2)
+  val core = List(zioCore, zioStreams)
   val httpRoutes = List(http) ++ core
+  val server = List(zioConfig)
 }
