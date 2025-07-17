@@ -12,7 +12,10 @@ import zio.{Random, Task, ZLayer}
 
 case class ItemTable(id: UUID,
                      name: String,
-                     categoryId: UUID
+                     description: String,
+                     price: BigDecimal,
+                     categoryId: UUID,
+                     location: String
                     )
 case class ItemRepoPersist(ds: DataSource) extends ItemRepo {
 
@@ -20,22 +23,47 @@ case class ItemRepoPersist(ds: DataSource) extends ItemRepo {
 
   import ctx._
 
-  override def getByCategoryID(categoryId: UUID): Task[Seq[Item]] = ???
+  private val itemToTable = (item: Item) => ItemTable(item.id, item.name, item.description, item.price, item.categoryId, item.location)
+  private val tableToItem = (itemTable: ItemTable) => Item(itemTable.id, itemTable.name, itemTable.description, itemTable.price, itemTable.categoryId, itemTable.location)
+
+
+  override def get(id: UUID): Task[Option[Item]] =
+    ctx.run {
+      query[ItemTable].filter(_.id == lift(id))
+    }.map(_.headOption.map(tableToItem)).provide(ZLayer.succeed(ds))
+
+  override def getAll: Task[Seq[Item]] =
+    ctx.run {
+      query[ItemTable]
+    }.map(_.map(tableToItem)).provide(ZLayer.succeed(ds))
+
+  override def search(searchQuery: String): Task[Seq[Item]] =
+    ctx.run {
+      query[ItemTable].filter(p => p.name.like(lift(s"%$searchQuery%")) || p.description.like(lift(s"%$searchQuery%")))
+    }.map(_.map(tableToItem)).provide(ZLayer.succeed(ds))
+
+
+  override def getByCategoryID(categoryId: UUID): Task[Seq[Item]] =
+    ctx.run {
+      query[ItemTable].filter(_.categoryId == lift(categoryId))
+    }.map(_.map(tableToItem)).provide(ZLayer.succeed(ds))
 
   override def create(item: Item): Task[Item] = {
     for {
       id <- Random.nextUUID
+      newItem = item.copy(id = id)
       _ <- ctx.run {
-        quote {
-          query[ItemTable].insertValue {
-            lift(ItemTable(id, item.name, item.categoryId))
-          }
+        query[ItemTable].insertValue {
+          lift(itemToTable(newItem))
         }
       }
-    } yield Item(id, name = item.name, categoryId = item.categoryId)
+    } yield newItem
   }.provide(ZLayer.succeed(ds))
 
-  override def delete(id: UUID): Task[Unit] = ???
+  override def delete(id: UUID): Task[Unit] =
+    ctx.run {
+      query[ItemTable].filter(_.id == lift(id)).delete
+    }.unit.provide(ZLayer.succeed(ds))
 }
 
 object ItemRepoPersist {

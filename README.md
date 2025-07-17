@@ -1,201 +1,76 @@
 # ZIO Avito Desk
 
-A modern, type-safe REST API built with ZIO, featuring a clean architecture with domain-driven design principles.
+ZIO Avito Desk is a web application that demonstrates how to build a simple classifieds board using the ZIO stack on the backend and React on the frontend.
 
-## 🚀 Features
+## Features
 
-- **Type-safe HTTP API** using ZIO HTTP
-- **Clean Architecture** with separate domain, storage, service, and route layers
-- **Database Integration** with Quill ORM and H2 database
-- **JSON Serialization** using ZIO JSON
-- **Configuration Management** with ZIO Config
-- **Functional Programming** with ZIO effects
+*   **View a list of items:** See all the items available on the board.
+*   **Search for items:** Find specific items using a search bar.
+*   **View item details:** Click on an item to see more information about it.
+*   **Create new items:** Add your own items to the board.
+*   **Delete items:** Remove items from the board.
 
-## 📋 Prerequisites
+## Tech Stack
 
-- Java 11 or higher
-- SBT (Scala Build Tool)1.5 or higher
-- Scala 2.13.6
+*   **Backend:**
+    *   [ZIO](https://zio.dev/): A library for asynchronous and concurrent programming in Scala.
+    *   [ZIO HTTP](https://zio.github.io/zio-http/): A high-performance, easy-to-use HTTP server and client library for ZIO.
+    *   [Quill](https://getquill.io/): A compile-time language-integrated query library for Scala.
+    *   [H2 Database](https://www.h2database.com/): An in-memory, relational database.
+*   **Frontend:**
+    *   [React](https://reactjs.org/): A JavaScript library for building user interfaces.
+    *   [TypeScript](https://www.typescriptlang.org/): A typed superset of JavaScript that compiles to plain JavaScript.
 
-## 🛠️ Installation & Setup
+## Getting Started
 
-### 1. Clone the repository
-```bash
-git clone <repository-url>
-cd zio-avito-desk
-```
+### Prerequisites
 
-### 2. Build the project
-```bash
-sbt compile
-```
+*   [Java Development Kit (JDK) 11](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html) or later.
+*   [sbt](https://www.scala-sbt.org/): The interactive build tool for Scala.
+*   [Node.js](https://nodejs.org/) and [npm](https://www.npmjs.com/).
 
-### 3. Run the application
-```bash
-sbt "project server" run
-```
+### Installation
 
-The server will start on port 8080
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/zio-avito-desk.git
+    cd zio-avito-desk
+    ```
+2.  **Run the backend:**
+    Open a terminal and run the following command to start the backend server:
+    ```bash
+    sbt "run"
+    ```
+    The server will start on port 8080.
 
-### 4. Run tests
-```bash
-sbt test
-```
+3.  **Run the frontend:**
+    Open another terminal, navigate to the `frontend` directory, and install the dependencies:
+    ```bash
+    cd frontend
+    npm install
+    ```
+    Then, start the frontend development server:
+    ```bash
+    npm start
+    ```
+    The application will be available at [http://localhost:3000](http://localhost:3000).
 
-## 🏗️ Project Architecture
+## How to Use
 
-The project follows a clean architecture pattern with the following modules:
+*   **Search:** Type in the search bar and click the "Search" button to filter the items.
+*   **View Details:** Click on any item card to see more details (not yet implemented).
+*   **Create/Delete:** Use a tool like [Postman](https://www.postman.com/) or `curl` to send requests to the backend API to create or delete items.
 
-```
-zio-avito-desk/
-├── domain/          # Domain models and business logic
-├── storage/         # Data access layer (repositories)
-├── service/         # Business logic and use cases
-├── route/           # HTTP routes and API endpoints
-└── server/          # Application entry point and configuration
-```
+### API Endpoints
 
-### Module Dependencies
+*   `GET /items`: Get all items.
+*   `GET /items/{id}`: Get an item by its ID.
+*   `GET /items/search/{query}`: Search for items.
+*   `POST /items`: Create a new item.
+*   `DELETE /items/{id}`: Delete an item.
+*   `GET /categories`: Get all categories.
+*   `GET /categories/{id}`: Get a category by its ID.
 
-```
-server → route → service → storage → domain
-```
+## Contributing
 
-## 📚 API Documentation
-
-### Items API
-
-#### Get All Items
-```http
-GET /items
-```
-
-#### Get Item by ID
-```http
-GET /items/{id}
-```
-
-#### Create Item
-```http
-POST /items
-Content-Type: application/json
-[object Object]name": "Item Name,categoryId": "uuid-string"
-}
-```
-
-#### Update Item
-```http
-PUT /items
-Content-Type: application/json
-
-{
-  id: uuid-string",
-name": Updated Item Name,categoryId": "uuid-string"
-}
-```
-
-#### Delete Item
-```http
-DELETE /items/{id}
-```
-
-#### Get Items by Category
-```http
-GET /items/category/{categoryId}
-```
-
-### Categories API
-
-#### Get All Categories
-```http
-GET /categories
-```
-
-#### Get Category by ID
-```http
-GET /categories/{id}
-```
-
-#### Create Category
-```http
-POST /categories
-Content-Type: application/json
-
-{
- name": Category Name"
-}
-```
-
-#### Update Category
-```http
-PUT /categories
-Content-Type: application/json
-
-{
-  id: uuid-string",
-nameUpdated Category Name"
-}
-```
-
-#### Delete Category
-```http
-DELETE /categories/{id}
-```
-
-## 🛠️ Development
-
-### Project Structure
-
-- **Domain Layer**: Contains core business entities (`Item`, `Category`, `User`)
-- **Storage Layer**: Handles data persistence with repository pattern
-- **Service Layer**: Implements business logic and orchestrates operations
-- **Route Layer**: Defines HTTP endpoints and request/response handling
-- **Server Layer**: Application configuration and startup
-
-### Key Technologies
-
-- **ZIO**: Functional effect system for Scala
-- **ZIO HTTP**: Type-safe HTTP library
-- **Quill**: Compile-time SQL query library
-- **ZIO JSON**: JSON serialization/deserialization
-- **ZIO Config**: Configuration management
-- **H2abase**: In-memory database for development
-
-### Adding New Features
-
-1**Domain Models**: Add new case classes in `domain/src/main/scala/com/example/zivito/Domain.scala`
-2pository**: Create repository trait and implementation in `storage/`
-3. **Service**: Add service trait and implementation in `service/`
-4. **Routes**: Define HTTP endpoints in `route/`5 **Dependencies**: Update `project/Dependencies.scala` if needed
-
-## 🧪 Testing
-
-The project uses ZIO Test framework. Run tests with:
-
-```bash
-sbt test
-```
-
-## 📦 Building
-
-Create a JAR file:
-
-```bash
-sbt assembly
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For issues and questions, please create an issue in the repository.
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
