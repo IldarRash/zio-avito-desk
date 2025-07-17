@@ -7,74 +7,47 @@ import zhttp.http.Method._
 import java.util.UUID
 
 object ItemRoutes {
-  case class CreateItemRequest(name: String, categoryId: UUID)
-  case class UpdateItemRequest(id: UUID, name: String, categoryId: UUID)
-  
+
+  /**
+   * Represents the request to create an item.
+   *
+   * @param name The name of the item.
+   * @param description The description of the item.
+   * @param price The price of the item.
+   * @param categoryId The ID of the category the item belongs to.
+   * @param location The location of the item.
+   */
+  case class CreateItemRequest(name: String, description: String, price: BigDecimal, categoryId: UUID, location: String)
+
   object CreateItemRequest {
     implicit val decoder: JsonDecoder[CreateItemRequest] = DeriveJsonDecoder.gen[CreateItemRequest]
   }
-  
-  object UpdateItemRequest {
-    implicit val decoder: JsonDecoder[UpdateItemRequest] = DeriveJsonDecoder.gen[UpdateItemRequest]
-  }
-  
+
   def routes: HttpApp[ItemService, Throwable] =
     Http.collectZIO[Request] {
-      case req @ GET -> Root / "items" =>
-        for {
-          items <- ZIO.serviceWithZIO[ItemService](_.getAllItems)
-          response = Response.json(items.toJson)
-        } yield response
-        
-      case req @ GET -> Root / "items" / id =>
-        for {
-          itemId <- ZIO.attempt(UUID.fromString(id))
-          item <- ZIO.serviceWithZIO[ItemService](_.getItem(itemId))
-          response = item match {
-            case Some(item) => Response.json(item.toJson)
-            case None => Response.status(Status.NotFound)
-          }
-        } yield response
-        
+      
+      case GET -> Root / "items" =>
+        ZIO.serviceWithZIO[ItemService](_.getAll.map(items => Response.json(items.toJson)))
+
+      case GET -> Root / "items" / "search" / query =>
+        ZIO.serviceWithZIO[ItemService](_.search(query).map(items => Response.json(items.toJson)))
+
+      case GET -> Root / "items" / UUID(id) =>
+        ZIO.serviceWithZIO[ItemService](_.get(id).map {
+          case Some(item) => Response.json(item.toJson)
+          case None       => Response.status(Status.NotFound)
+        })
+
       case req @ POST -> Root / "items" =>
         for {
-          body <- req.bodyAsString
-          request <- ZIO.fromEither(body.fromJson[CreateItemRequest])
-          item = Domain.Item(
-            id = UUID.randomUUID(),
-            name = request.name,
-            categoryId = request.categoryId
-          )
-          createdItem <- ZIO.serviceWithZIO[ItemService](_.createItem(item))
-          response = Response.json(createdItem.toJson)
-        } yield response
-        
-      case req @ PUT -> Root / "items" =>
-        for {
-          body <- req.bodyAsString
-          request <- ZIO.fromEither(body.fromJson[UpdateItemRequest])
-          item = Domain.Item(
-            id = request.id,
-            name = request.name,
-            categoryId = request.categoryId
-          )
-          updatedItem <- ZIO.serviceWithZIO[ItemService](_.updateItem(item))
-          response = Response.json(updatedItem.toJson)
-        } yield response
-        
-      case req @ DELETE -> Root / "items" / id =>
-        for {
-          itemId <- ZIO.attempt(UUID.fromString(id))
-          deleted <- ZIO.serviceWithZIO[ItemService](_.deleteItem(itemId))
-          response = if (deleted) Response.ok else Response.status(Status.NotFound)
-        } yield response
-        
-      case req @ GET -> Root / "items" / "category" / categoryId =>
-        for {
-          catId <- ZIO.attempt(UUID.fromString(categoryId))
-          items <- ZIO.serviceWithZIO[ItemService](_.getItemsByCategory(catId))
-          response = Response.json(items.toJson)
-        } yield response
+          createItem <- req.bodyAsString.flatMap(body => ZIO.fromEither(body.fromJson[CreateItemRequest]))
+          item <- ZIO.serviceWithZIO[ItemService](_.create(Domain.Item(UUID.randomUUID(), createItem.name, createItem.description, createItem.price, createItem.categoryId, createItem.location)))
+        } yield Response.json(item.toJson)
+
+      case DELETE -> Root / "items" / UUID(id) =>
+        ZIO.serviceWithZIO[ItemService](_.delete(id)).as(Response.ok)
+      
+      case GET -> Root / "items" / "category" / UUID(categoryId) =>
+        ZIO.serviceWithZIO[ItemService](_.getItemsByCategory(categoryId).map(items => Response.json(items.toJson)))
     }
-  }
 }

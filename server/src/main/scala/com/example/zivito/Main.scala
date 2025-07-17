@@ -7,19 +7,20 @@ import zio.config._
 import zio.config.typesafe._
 
 object Main extends ZIOAppDefault {
-  
-  def run: ZIO[Environment with ZIOAppArgs, Throwable, ExitCode] = {
-    val app = ItemRoutes.routes ++ CategoryRoutes.routes
-    
-    val program = for {
-      _ <- ZIO.logInfo("Starting Avito Desk Server...")
-      _ <- Server.start(8080)
-        .provide(
-          ItemServiceImpl.layer,
-          CategoryServiceImpl.layer
-        )
-    } yield ()
-    
-    program.exitCode
-  }
+
+  override def run: ZIO[Any, Throwable, Nothing] =
+    (for {
+      _ <- ZIO.logInfo("Starting server on port 8080")
+      _ <- Server.start(
+        port = 8080,
+        http = ItemRoutes.routes ++ CategoryRoutes.routes
+      )
+    } yield ()).provide(
+      ItemServiceImpl.layer,
+      ItemRepoPersist.layer,
+      CategoryServiceImpl.layer,
+      zio.Scope.default,
+      // Change to your own database settings
+      DataSourceLayer.fromPrefix("App")
+    )
 }

@@ -1,12 +1,15 @@
 export interface Item {
-  id: string;
-  name: string;
-  categoryId: string;
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    categoryId: string;
+    location: string;
 }
 
 export interface Category {
-  id: string;
-  name: string;
+    id: string;
+    name: string;
 }
 
 export interface CreateItemRequest {
