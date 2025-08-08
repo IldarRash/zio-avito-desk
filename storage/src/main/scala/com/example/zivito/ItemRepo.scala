@@ -2,7 +2,7 @@ package com.example.zivito
 
 import java.util.UUID
 
-import com.example.zivito.Domain.Item
+import com.example.zivito.Domain.{Item, ItemSearchFilters}
 import zio.{Task, ZIO}
 
 trait ItemRepo {
@@ -28,6 +28,11 @@ trait ItemRepo {
    */
   def search(query: String): Task[Seq[Item]]
 
+  /**
+   * Advanced search by structured filters
+   */
+  def searchByFilters(filters: ItemSearchFilters): Task[Seq[Item]]
+
   def getByCategoryID(categoryId: UUID): Task[Seq[Item]]
 
   def create(item: Item): Task[Item]
@@ -44,6 +49,9 @@ object ItemRepo {
 
   def search(query: String): ZIO[ItemRepo, Throwable, Seq[Item]] =
     ZIO.serviceWithZIO[ItemRepo](_.search(query))
+
+  def searchByFilters(filters: ItemSearchFilters): ZIO[ItemRepo, Throwable, Seq[Item]] =
+    ZIO.serviceWithZIO[ItemRepo](_.searchByFilters(filters))
 
   def getByCategoryID(categoryId: UUID): ZIO[ItemRepo, Throwable, Seq[Item]] =
     ZIO.serviceWithZIO[ItemRepo](_.getByCategoryID(categoryId))

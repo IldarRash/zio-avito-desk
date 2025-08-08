@@ -13,6 +13,9 @@ case class ItemServiceImpl(repo: ItemRepo) extends ItemService {
 
   override def search(query: String): Task[List[Domain.Item]] = repo.search(query).map(_.toList)
 
+  override def search(filters: Domain.ItemSearchFilters): Task[List[Domain.Item]] =
+    repo.searchByFilters(filters).map(_.toList)
+
   override def delete(id: UUID): Task[Unit] = repo.delete(id)
 
   override def getItemsByCategory(categoryId: UUID): Task[List[Domain.Item]] =

@@ -2,7 +2,7 @@ package com.example.zivito
 
 import java.util.UUID
 
-import com.example.zivito.Domain.Item
+import com.example.zivito.Domain.{Item, ItemSearchFilters}
 import io.getquill.context.ZioJdbc.DataSourceLayer
 import io.getquill.{Escape, H2ZioJdbcContext}
 import javax.sql.DataSource
@@ -41,6 +41,19 @@ case class ItemRepoPersist(ds: DataSource) extends ItemRepo {
     ctx.run {
       query[ItemTable].filter(p => p.name.like(lift(s"%$searchQuery%")) || p.description.like(lift(s"%$searchQuery%")))
     }.map(_.map(tableToItem)).provide(ZLayer.succeed(ds))
+
+  override def searchByFilters(filters: ItemSearchFilters): Task[Seq[Item]] = {
+    ctx.run {
+      var q = quote(query[ItemTable])
+      // Quill doesn't support dynamic filters imperatively; compose conditionally
+      query[ItemTable]
+        .filter(r => lift(filters.keywords).forall(k => r.name.like("%" + k + "%") || r.description.like("%" + k + "%")))
+        .filter(r => lift(filters.categoryId).forall(cat => r.categoryId == cat))
+        .filter(r => lift(filters.minPrice).forall(minp => r.price >= minp))
+        .filter(r => lift(filters.maxPrice).forall(maxp => r.price <= maxp))
+        .filter(r => lift(filters.location).forall(loc => r.location.like("%" + loc + "%")))
+    }.map(_.map(tableToItem)).provide(ZLayer.succeed(ds))
+  }
 
 
   override def getByCategoryID(categoryId: UUID): Task[Seq[Item]] =

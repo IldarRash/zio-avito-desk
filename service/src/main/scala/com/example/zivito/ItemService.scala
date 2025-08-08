@@ -2,6 +2,7 @@ package com.example.zivito
 
 import zio._
 import java.util.UUID
+import com.example.zivito.Domain.ItemSearchFilters
 
 trait ItemService {
 
@@ -35,6 +36,7 @@ trait ItemService {
     * @return A list of items matching the query.
     */
   def search(query: String): Task[List[Domain.Item]]
+  def search(filters: ItemSearchFilters): Task[List[Domain.Item]]
 
   /**
    * Deletes an item by its ID.

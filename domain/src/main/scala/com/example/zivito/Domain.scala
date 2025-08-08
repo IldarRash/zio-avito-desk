@@ -59,4 +59,20 @@ object Domain {
     implicit val encoder: JsonEncoder[User] = DeriveJsonEncoder.gen[User]
     implicit val decoder: JsonDecoder[User] = DeriveJsonDecoder.gen[User]
   }
+
+  /**
+   * Input filters for searching items.
+   */
+  final case class ItemSearchFilters(
+    keywords: Option[String] = None,
+    categoryId: Option[UUID] = None,
+    minPrice: Option[BigDecimal] = None,
+    maxPrice: Option[BigDecimal] = None,
+    location: Option[String] = None
+  )
+
+  object ItemSearchFilters {
+    implicit val encoder: JsonEncoder[ItemSearchFilters] = DeriveJsonEncoder.gen[ItemSearchFilters]
+    implicit val decoder: JsonDecoder[ItemSearchFilters] = DeriveJsonDecoder.gen[ItemSearchFilters]
+  }
 }

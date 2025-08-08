@@ -5,6 +5,7 @@ import caliban.RootResolver
 import caliban.schema.Annotations.GQLDescription
 import zio._
 import java.util.UUID
+import com.example.zivito.Domain.ItemSearchFilters
 
 object GraphQLApi {
 
@@ -24,6 +25,8 @@ object GraphQLApi {
     item: UUID => ZIO[ItemService, Throwable, Option[Domain.Item]],
     @GQLDescription("Search items by query")
     search: String => ZIO[ItemService, Throwable, List[Domain.Item]],
+    @GQLDescription("Advanced search by filters")
+    searchByFilters: ItemSearchFilters => ZIO[ItemService, Throwable, List[Domain.Item]],
     @GQLDescription("List all categories")
     categories: ZIO[CategoryService, Throwable, List[Domain.Category]]
   )
@@ -44,6 +47,7 @@ object GraphQLApi {
       items = ZIO.serviceWithZIO[ItemService](_.getAll),
       item = (id: UUID) => ZIO.serviceWithZIO[ItemService](_.get(id)),
       search = (q: String) => ZIO.serviceWithZIO[ItemService](_.search(q)),
+      searchByFilters = (f: ItemSearchFilters) => ZIO.serviceWithZIO[ItemService](_.search(f)),
       categories = ZIO.serviceWithZIO[CategoryService](_.getAllCategories)
     )
 
