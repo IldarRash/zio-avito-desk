@@ -1,6 +1,9 @@
 import React, {useMemo, useState} from 'react';
 import './App.css';
 import { gql, useQuery } from '@apollo/client';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 const ITEMS_QUERY = gql`
   query Items($q: String) {
@@ -18,16 +21,21 @@ type Item = {
   categoryId: string;
 }
 
-function App() {
+function Home() {
   const [search, setSearch] = useState('');
   const variables = useMemo(() => ({ q: search || null }), [search]);
   const { data, loading } = useQuery(ITEMS_QUERY, { variables });
-
   const items: Item[] = search ? (data?.search ?? []) : (data?.items ?? []);
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">Avito Desk</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Avito Desk</h1>
+        <div className="flex gap-4 text-sm">
+          <Link to="/login" className="text-blue-600">Login</Link>
+          <Link to="/register" className="text-blue-600">Register</Link>
+        </div>
+      </div>
       <div className="flex justify-center gap-2 mb-6">
         <input
           className="border rounded px-3 py-2 w-1/2"
@@ -60,4 +68,14 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
