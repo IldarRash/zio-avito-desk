@@ -1,6 +1,7 @@
 package com.example.zivito
 
 import java.util.UUID
+import java.time.Instant
 import zio.json._
 
 object Domain {
@@ -74,5 +75,36 @@ object Domain {
   object ItemSearchFilters {
     implicit val encoder: JsonEncoder[ItemSearchFilters] = DeriveJsonEncoder.gen[ItemSearchFilters]
     implicit val decoder: JsonDecoder[ItemSearchFilters] = DeriveJsonDecoder.gen[ItemSearchFilters]
+  }
+
+  /**
+   * Represents a chat dialog between two users.
+   */
+  final case class Dialog(
+    id: UUID,
+    userAId: UUID,
+    userBId: UUID,
+    lastMessageAt: Instant
+  )
+
+  object Dialog {
+    implicit val encoder: JsonEncoder[Dialog] = DeriveJsonEncoder.gen[Dialog]
+    implicit val decoder: JsonDecoder[Dialog] = DeriveJsonDecoder.gen[Dialog]
+  }
+
+  /**
+   * Represents a chat message sent in a dialog.
+   */
+  final case class ChatMessage(
+    id: UUID,
+    dialogId: UUID,
+    senderId: UUID,
+    text: String,
+    createdAt: Instant
+  )
+
+  object ChatMessage {
+    implicit val encoder: JsonEncoder[ChatMessage] = DeriveJsonEncoder.gen[ChatMessage]
+    implicit val decoder: JsonDecoder[ChatMessage] = DeriveJsonDecoder.gen[ChatMessage]
   }
 }

@@ -19,6 +19,7 @@ object Main extends ZIOAppDefault {
     } yield ()).provide(
       ItemServiceImpl.layer,
       ItemRepoPersist.layer,
+      CategoryRepoPersist.layer,
       CategoryServiceImpl.layer,
       InMemoryUserRepo.layer,
       JwtAuthService.layer,
