@@ -107,4 +107,25 @@ object Domain {
     implicit val encoder: JsonEncoder[ChatMessage] = DeriveJsonEncoder.gen[ChatMessage]
     implicit val decoder: JsonDecoder[ChatMessage] = DeriveJsonDecoder.gen[ChatMessage]
   }
+
+  /**
+   * Represents an image attached to an item.
+   * @param id Unique image identifier
+   * @param itemId Item this image belongs to
+   * @param url Public URL or path to the image
+   * @param isCover Whether this image is a cover for the item
+   * @param order Display order among item's images
+   */
+  final case class ItemImage(
+    id: UUID,
+    itemId: UUID,
+    url: String,
+    isCover: Boolean = false,
+    order: Int = 0
+  )
+
+  object ItemImage {
+    implicit val encoder: JsonEncoder[ItemImage] = DeriveJsonEncoder.gen[ItemImage]
+    implicit val decoder: JsonDecoder[ItemImage] = DeriveJsonDecoder.gen[ItemImage]
+  }
 }
