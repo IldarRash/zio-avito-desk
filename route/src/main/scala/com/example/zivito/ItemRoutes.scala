@@ -32,11 +32,13 @@ object ItemRoutes {
       case GET -> Root / "items" / "search" / query =>
         ZIO.serviceWithZIO[ItemService](_.search(query).map(items => Response.json(items.toJson)))
 
-      case GET -> Root / "items" / UUID(id) =>
-        ZIO.serviceWithZIO[ItemService](_.get(id).map {
-          case Some(item) => Response.json(item.toJson)
-          case None       => Response.status(Status.NotFound)
-        })
+      case GET -> Root / "items" / id =>
+        ZIO.attempt(java.util.UUID.fromString(id)).flatMap { uuid =>
+          ZIO.serviceWithZIO[ItemService](_.get(uuid).map {
+            case Some(item) => Response.json(item.toJson)
+            case None       => Response.status(Status.NotFound)
+          })
+        }
 
       case req @ POST -> Root / "items" =>
         for {
@@ -44,10 +46,14 @@ object ItemRoutes {
           item <- ZIO.serviceWithZIO[ItemService](_.create(Domain.Item(UUID.randomUUID(), createItem.name, createItem.description, createItem.price, createItem.categoryId, createItem.location)))
         } yield Response.json(item.toJson)
 
-      case DELETE -> Root / "items" / UUID(id) =>
-        ZIO.serviceWithZIO[ItemService](_.delete(id)).as(Response.ok)
+      case DELETE -> Root / "items" / id =>
+        ZIO.attempt(UUID.fromString(id)).flatMap { uuid =>
+          ZIO.serviceWithZIO[ItemService](_.delete(uuid)).as(Response.ok)
+        }
       
-      case GET -> Root / "items" / "category" / UUID(categoryId) =>
-        ZIO.serviceWithZIO[ItemService](_.getItemsByCategory(categoryId).map(items => Response.json(items.toJson)))
+      case GET -> Root / "items" / "category" / id =>
+        ZIO.attempt(UUID.fromString(id)).flatMap { catId =>
+          ZIO.serviceWithZIO[ItemService](_.getItemsByCategory(catId).map(items => Response.json(items.toJson)))
+        }
     }
 }

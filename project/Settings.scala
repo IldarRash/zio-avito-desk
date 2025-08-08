@@ -30,6 +30,6 @@ object Settings {
   val domain = List(json)
   val repos = List(quillJdbc, quillZio, h2)
   val core = List(zioCore, zioStreams)
-  val httpRoutes = List(http) ++ core
-  val server = List(zioConfig)
+  val httpRoutes = List(http, Dependencies.caliban, Dependencies.calibanZioHttp) ++ core
+  val server = List(zioConfig, Dependencies.caliban, Dependencies.calibanZioHttp, Dependencies.javaJwt)
 }
