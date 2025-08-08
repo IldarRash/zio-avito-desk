@@ -60,5 +60,8 @@
       "last 1 safari version"
     ]
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11"
+  }
 }
