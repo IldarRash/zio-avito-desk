@@ -9,16 +9,16 @@ export const FeedPage: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    getItems().then(setItems);
+    getItems().then((data) => setItems(data as any[]));
   }, []);
 
   const onSearch = async () => {
     if (!q) {
       const data = await getItems();
-      setItems(data);
+      setItems(data as any[]);
     } else {
       const data = await searchItems(q);
-      setItems(data);
+      setItems(data as any[]);
     }
   };
 
