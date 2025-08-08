@@ -21,6 +21,8 @@ object Main extends ZIOAppDefault {
       ItemRepoPersist.layer,
       CategoryRepoPersist.layer,
       CategoryServiceImpl.layer,
+      ChatRepoPersist.layer,
+      ChatServiceImpl.layer,
       InMemoryUserRepo.layer,
       JwtAuthService.layer,
       zio.Scope.default,

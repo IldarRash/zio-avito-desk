@@ -18,6 +18,13 @@ final case class ChatRepoPersist(ds: DataSource) extends ChatRepo {
   private def toDialog(t: DialogTable): Dialog = Dialog(t.id, t.userAId, t.userBId, t.lastMessageAt)
   private def toMessage(t: MessageTable): ChatMessage = ChatMessage(t.id, t.dialogId, t.senderId, t.text, t.createdAt)
 
+  override def createDialog(userAId: UUID, userBId: UUID): Task[Dialog] =
+    for {
+      id <- Random.nextUUID
+      now = Instant.now()
+      _ <- ctx.run(query[DialogTable].insertValue(lift(DialogTable(id, userAId, userBId, now))))
+    } yield Dialog(id, userAId, userBId, now)
+
   override def dialogsFor(userId: UUID): Task[Seq[Dialog]] =
     ctx.run(query[DialogTable].filter(d => d.userAId == lift(userId) || d.userBId == lift(userId))).map(_.map(toDialog)).provide(ZLayer.succeed(ds))
 
