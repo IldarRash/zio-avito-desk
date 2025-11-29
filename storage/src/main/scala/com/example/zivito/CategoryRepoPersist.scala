@@ -39,3 +39,4 @@ object CategoryRepoPersist {
   def layer: ZLayer[DataSource, Throwable, CategoryRepo] =
     DataSourceLayer.fromPrefix("App") >>> ZLayer.fromFunction(CategoryRepoPersist(_))
 }
+

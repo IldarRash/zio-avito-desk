@@ -39,3 +39,4 @@ object ItemImageRepoPersist {
   def layer: ZLayer[DataSource, Throwable, ItemImageRepo] =
     DataSourceLayer.fromPrefix("App") >>> ZLayer.fromFunction(ItemImageRepoPersist(_))
 }
+

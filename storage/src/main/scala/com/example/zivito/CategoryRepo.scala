@@ -19,3 +19,4 @@ object CategoryRepo {
   def update(c: Category): ZIO[CategoryRepo, Throwable, Category] = ZIO.serviceWithZIO[CategoryRepo](_.update(c))
   def delete(id: UUID): ZIO[CategoryRepo, Throwable, Unit] = ZIO.serviceWithZIO[CategoryRepo](_.delete(id))
 }
+

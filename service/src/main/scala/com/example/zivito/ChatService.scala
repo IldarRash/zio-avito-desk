@@ -10,3 +10,4 @@ trait ChatService {
   def messages(dialogId: UUID): Task[List[ChatMessage]]
   def send(dialogId: UUID, message: ChatMessage): Task[ChatMessage]
 }
+

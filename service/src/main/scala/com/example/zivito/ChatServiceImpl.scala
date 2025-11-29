@@ -14,3 +14,4 @@ final case class ChatServiceImpl(repo: ChatRepo) extends ChatService {
 object ChatServiceImpl {
   val layer: ZLayer[ChatRepo, Nothing, ChatService] = ZLayer.fromFunction(ChatServiceImpl(_))
 }
+

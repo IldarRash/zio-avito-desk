@@ -17,3 +17,4 @@ object ItemImageRepo {
   def setCover(itemId: UUID, imageId: UUID): ZIO[ItemImageRepo, Throwable, Unit] = ZIO.serviceWithZIO[ItemImageRepo](_.setCover(itemId, imageId))
   def delete(id: UUID): ZIO[ItemImageRepo, Throwable, Unit] = ZIO.serviceWithZIO[ItemImageRepo](_.delete(id))
 }
+

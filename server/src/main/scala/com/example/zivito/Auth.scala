@@ -65,3 +65,4 @@ final case class JwtAuthService(repo: UserRepo, secret: String = "dev-secret") e
 object JwtAuthService {
   val layer: ZLayer[UserRepo, Nothing, AuthService] = ZLayer.fromFunction(JwtAuthService(_))
 }
+
