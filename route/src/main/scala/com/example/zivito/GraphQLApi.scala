@@ -5,7 +5,7 @@ import caliban.RootResolver
 import caliban.schema.Annotations.GQLDescription
 import zio._
 import java.util.UUID
-import com.example.zivito.Domain.{ItemSearchFilters, ChatMessage, Dialog}
+import com.example.zivito.Domain. {ItemSearchFilters, ChatMessage, Dialog}
 
 object GraphQLApi {
 
@@ -32,7 +32,11 @@ object GraphQLApi {
     @GQLDescription("Chat dialogs for a user")
     dialogsFor: UUID => ZIO[ChatService, Throwable, List[Dialog]],
     @GQLDescription("Messages for a dialog")
-    messages: UUID => ZIO[ChatService, Throwable, List[ChatMessage]]
+    messages: UUID => ZIO[ChatService, Throwable, List[ChatMessage]],
+    @GQLDescription("Get my cart items")
+    myCart: UUID => ZIO[CartService, Throwable, List[Domain.Item]],
+    @GQLDescription("Get my orders")
+    myOrders: UUID => ZIO[OrderService, Throwable, List[Domain.Order]]
   )
 
   case class Mutations(
@@ -47,10 +51,16 @@ object GraphQLApi {
     @GQLDescription("Create a dialog between two users")
     createDialog: (UUID, UUID) => ZIO[ChatService, Throwable, Dialog],
     @GQLDescription("Send a chat message")
-    sendMessage: (UUID, UUID, String) => ZIO[ChatService, Throwable, ChatMessage]
+    sendMessage: (UUID, UUID, String) => ZIO[ChatService, Throwable, ChatMessage],
+    @GQLDescription("Add item to cart")
+    addToCart: (UUID, UUID) => ZIO[CartService, Throwable, Boolean],
+    @GQLDescription("Remove item from cart")
+    removeFromCart: (UUID, UUID) => ZIO[CartService, Throwable, Boolean],
+    @GQLDescription("Checkout cart to order")
+    checkout: UUID => ZIO[CartService, Throwable, Domain.Order]
   )
 
-  val api: GraphQL[ItemService with CategoryService] = {
+  val api: GraphQL[ItemService with CategoryService with ChatService with AuthService with CartService with OrderService] = {
     val queries = Queries(
       items = ZIO.serviceWithZIO[ItemService](_.getAll),
       item = (id: UUID) => ZIO.serviceWithZIO[ItemService](_.get(id)),
@@ -58,7 +68,9 @@ object GraphQLApi {
       searchByFilters = (f: ItemSearchFilters) => ZIO.serviceWithZIO[ItemService](_.search(f)),
       categories = ZIO.serviceWithZIO[CategoryService](_.getAllCategories),
       dialogsFor = (userId: UUID) => ZIO.serviceWithZIO[ChatService](_.dialogsFor(userId)),
-      messages = (dialogId: UUID) => ZIO.serviceWithZIO[ChatService](_.messages(dialogId))
+      messages = (dialogId: UUID) => ZIO.serviceWithZIO[ChatService](_.messages(dialogId)),
+      myCart = (userId: UUID) => ZIO.serviceWithZIO[CartService](_.getCartItems(userId)),
+      myOrders = (userId: UUID) => ZIO.serviceWithZIO[OrderService](_.getOrders(userId))
     )
 
     val mutations = Mutations(
@@ -75,7 +87,13 @@ object GraphQLApi {
       sendMessage = (dialogId: UUID, senderId: UUID, text: String) =>
         ZIO.succeed(ChatMessage(UUID.randomUUID(), dialogId, senderId, text, java.time.Instant.EPOCH)).flatMap { msg =>
           ZIO.serviceWithZIO[ChatService](_.send(dialogId, msg))
-        }
+        },
+      addToCart = (userId: UUID, itemId: UUID) =>
+        ZIO.serviceWithZIO[CartService](_.addToCart(userId, itemId)).as(true),
+      removeFromCart = (userId: UUID, itemId: UUID) =>
+        ZIO.serviceWithZIO[CartService](_.removeFromCart(userId, itemId)).as(true),
+      checkout = (userId: UUID) =>
+        ZIO.serviceWithZIO[CartService](_.checkout(userId))
     )
 
     GraphQL.graphQL(RootResolver(queries, mutations))

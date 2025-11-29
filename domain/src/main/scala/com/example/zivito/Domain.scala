@@ -128,4 +128,34 @@ object Domain {
     implicit val encoder: JsonEncoder[ItemImage] = DeriveJsonEncoder.gen[ItemImage]
     implicit val decoder: JsonDecoder[ItemImage] = DeriveJsonDecoder.gen[ItemImage]
   }
+
+  /**
+   * Represents an item in a user's shopping cart.
+   */
+  final case class CartItem(
+    userId: UUID,
+    itemId: UUID
+  )
+
+  object CartItem {
+    implicit val encoder: JsonEncoder[CartItem] = DeriveJsonEncoder.gen[CartItem]
+    implicit val decoder: JsonDecoder[CartItem] = DeriveJsonDecoder.gen[CartItem]
+  }
+
+  /**
+   * Represents an order placed by a user.
+   */
+  final case class Order(
+    id: UUID,
+    userId: UUID,
+    itemIds: List[UUID],
+    totalPrice: BigDecimal,
+    status: String, // e.g., "CREATED", "PAID", "DELIVERED"
+    createdAt: Instant
+  )
+
+  object Order {
+    implicit val encoder: JsonEncoder[Order] = DeriveJsonEncoder.gen[Order]
+    implicit val decoder: JsonDecoder[Order] = DeriveJsonDecoder.gen[Order]
+  }
 }

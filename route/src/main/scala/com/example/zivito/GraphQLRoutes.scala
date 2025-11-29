@@ -1,55 +1,11 @@
 package com.example.zivito
 
-import caliban._
-import caliban.schema.GenericSchema
-import zio._
-import zhttp.http._
-import zhttp.http.Method._
-import java.util.UUID
 import caliban.ZHttpAdapter
+import zhttp.http._
+import zio._
 
-final case class Queries(itemService: ItemService, categoryService: CategoryService) {
-  def items(query: Option[String]): Task[List[Domain.Item]] =
-    query match {
-      case Some(q) if q.nonEmpty => itemService.search(q)
-      case _ => itemService.getAll
-    }
-
-  def item(id: UUID): Task[Option[Domain.Item]] = itemService.get(id)
-  def categories: Task[List[Domain.Category]] = categoryService.getAllCategories
-}
-
-final case class Mutations(itemService: ItemService, categoryService: CategoryService) {
-  case class CreateItemInput(name: String, description: String, price: BigDecimal, categoryId: UUID, location: String)
-  case class CreateCategoryInput(name: String)
-
-  def createItem(input: CreateItemInput): Task[Domain.Item] =
-    itemService.create(Domain.Item(UUID.randomUUID(), input.name, input.description, input.price, input.categoryId, input.location))
-
-  def createCategory(input: CreateCategoryInput): Task[Domain.Category] =
-    categoryService.createCategory(Domain.Category(UUID.randomUUID(), input.name))
-}
-
-object GraphQLApi extends GenericSchema[Any]
-
-object GraphQLRoutes extends GraphQLApi {
-
-  implicit val itemSchema: Schema[Any, Domain.Item] = gen
-  implicit val categorySchema: Schema[Any, Domain.Category] = gen
-
-  final case class Api(queries: Queries, mutations: Mutations)
-
-  def makeApi: ZIO[ItemService with CategoryService, Nothing, GraphQLInterpreter[Any, CalibanError]] = {
-    for {
-      is <- ZIO.service[ItemService]
-      cs <- ZIO.service[CategoryService]
-      queries = Queries(is, cs)
-      mutations = Mutations(is, cs)
-      api <- caliban.GraphQL.graphQL(RootResolver(queries, mutations)).interpreter
-    } yield api
-  }
-
-  def routes: HttpApp[ItemService with CategoryService, Throwable] =
+object GraphQLRoutes {
+  def routes: HttpApp[ItemService with CategoryService with ChatService with AuthService with CartService with OrderService, Throwable] =
     Http.fromZIO(GraphQLApi.api.interpreter).flatMap { interpreter =>
       val graphQLApp = ZHttpAdapter.makeHttpService(interpreter)
       val graphiql = Http.collect[Request] { case Method.GET -> !! / "graphiql" =>
