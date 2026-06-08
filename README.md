@@ -1,76 +1,102 @@
 # ZIO Avito Desk
 
-ZIO Avito Desk is a web application that demonstrates how to build a simple classifieds board using the ZIO stack on the backend and React on the frontend.
+> A classifieds-board backend (Avito-style) built on the ZIO effect stack in Scala, with a layered, dependency-injected module design and a React + TypeScript frontend.
+
+![Scala](https://img.shields.io/badge/Scala-2.13-DC322F?logo=scala&logoColor=white)
+![ZIO](https://img.shields.io/badge/ZIO-effect%20stack-7B1FA2)
+![ZIO HTTP](https://img.shields.io/badge/ZIO%20HTTP-server-7B1FA2)
+![Quill](https://img.shields.io/badge/Quill-compile--time%20SQL-1f6feb)
+![H2](https://img.shields.io/badge/H2-in--memory%20DB-0066A1)
+![React](https://img.shields.io/badge/React-UI-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-frontend-3178C6?logo=typescript&logoColor=white)
+![sbt](https://img.shields.io/badge/sbt-build-CC2927)
+
+## What & why
+
+ZIO Avito Desk demonstrates how to build a simple classifieds board end to end on the **ZIO** stack: typed, composable effects on the backend with clean separation between domain, persistence, business logic, and HTTP routing, served to a React frontend. The backend is organized as a chain of sbt modules wired through ZIO's dependency-injection layers (`ZLayer`), so each concern depends only on the one beneath it. Users can browse, search, view, create, and delete listings.
 
 ## Features
 
-*   **View a list of items:** See all the items available on the board.
-*   **Search for items:** Find specific items using a search bar.
-*   **View item details:** Click on an item to see more information about it.
-*   **Create new items:** Add your own items to the board.
-*   **Delete items:** Remove items from the board.
+- View a list of items on the board
+- Search for items
+- View item details
+- Create new items
+- Delete items
 
-## Tech Stack
+## Architecture
 
-*   **Backend:**
-    *   [ZIO](https://zio.dev/): A library for asynchronous and concurrent programming in Scala.
-    *   [ZIO HTTP](https://zio.github.io/zio-http/): A high-performance, easy-to-use HTTP server and client library for ZIO.
-    *   [Quill](https://getquill.io/): A compile-time language-integrated query library for Scala.
-    *   [H2 Database](https://www.h2database.com/): An in-memory, relational database.
-*   **Frontend:**
-    *   [React](https://reactjs.org/): A JavaScript library for building user interfaces.
-    *   [TypeScript](https://www.typescriptlang.org/): A typed superset of JavaScript that compiles to plain JavaScript.
+A layered sbt multi-module backend; each module depends only on the layer below it, and ZIO `ZLayer` wires them together:
 
-## Getting Started
+```text
+  server   ← application entrypoint, HTTP server bootstrap
+    │ depends on
+  route    ← ZIO HTTP routes / endpoints
+    │
+  service  ← business logic (use cases)
+    │
+  storage  ← persistence: Quill queries over the H2 database
+    │
+  domain   ← core models and pure domain logic
+```
+
+The React + TypeScript frontend in `frontend/` consumes the REST API.
+
+### API endpoints
+
+| Method | Path                    | Description           |
+|--------|-------------------------|-----------------------|
+| GET    | `/items`                | Get all items         |
+| GET    | `/items/{id}`           | Get an item by id     |
+| GET    | `/items/search/{query}` | Search for items      |
+| POST   | `/items`                | Create a new item     |
+| DELETE | `/items/{id}`           | Delete an item        |
+| GET    | `/categories`           | Get all categories    |
+| GET    | `/categories/{id}`      | Get a category by id  |
+
+## Tech stack
+
+- **Backend:** [ZIO](https://zio.dev/) (async/concurrent effects), [ZIO HTTP](https://zio.dev/zio-http/) (server), [Quill](https://getquill.io/) (compile-time query generation), [H2](https://www.h2database.com/) (in-memory database).
+- **Frontend:** [React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/).
+
+## Getting started
 
 ### Prerequisites
 
-*   [Java Development Kit (JDK) 11](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html) or later.
-*   [sbt](https://www.scala-sbt.org/): The interactive build tool for Scala.
-*   [Node.js](https://nodejs.org/) and [npm](https://www.npmjs.com/).
+- JDK 11+
+- [sbt](https://www.scala-sbt.org/)
+- Node.js + npm
 
-### Installation
+### Run the backend
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/zio-avito-desk.git
-    cd zio-avito-desk
-    ```
-2.  **Run the backend:**
-    Open a terminal and run the following command to start the backend server:
-    ```bash
-    sbt "run"
-    ```
-    The server will start on port 8080.
+```bash
+sbt run
+```
 
-3.  **Run the frontend:**
-    Open another terminal, navigate to the `frontend` directory, and install the dependencies:
-    ```bash
-    cd frontend
-    npm install
-    ```
-    Then, start the frontend development server:
-    ```bash
-    npm start
-    ```
-    The application will be available at [http://localhost:3000](http://localhost:3000).
+The server starts on port `8080`.
 
-## How to Use
+### Run the frontend
 
-*   **Search:** Type in the search bar and click the "Search" button to filter the items.
-*   **View Details:** Click on any item card to see more details (not yet implemented).
-*   **Create/Delete:** Use a tool like [Postman](https://www.postman.com/) or `curl` to send requests to the backend API to create or delete items.
+```bash
+cd frontend
+npm install
+npm start
+```
 
-### API Endpoints
+The app is available at [http://localhost:3000](http://localhost:3000).
 
-*   `GET /items`: Get all items.
-*   `GET /items/{id}`: Get an item by its ID.
-*   `GET /items/search/{query}`: Search for items.
-*   `POST /items`: Create a new item.
-*   `DELETE /items/{id}`: Delete an item.
-*   `GET /categories`: Get all categories.
-*   `GET /categories/{id}`: Get a category by its ID.
+## Project structure
+
+```text
+domain/    core models + pure domain logic
+storage/   persistence (Quill over H2)
+service/   business logic / use cases
+route/     ZIO HTTP routes
+server/    application entrypoint + HTTP server
+frontend/  React + TypeScript UI
+project/   sbt build configuration
+build.sbt  sbt multi-module definition
+```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to open an issue or submit a pull request.
+Contributions are welcome — feel free to open an issue or submit a pull request.
