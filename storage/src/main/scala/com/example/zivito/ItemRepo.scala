@@ -7,25 +7,26 @@ import zio.{Task, ZIO}
 
 trait ItemRepo {
 
-  /**
-   * Retrieves an item by its ID.
-   * @param id The ID of the item to retrieve.
-   * @return A Task that resolves to an Option of the Item.
-   */
+  /** Retrieves an item by its ID.
+    * @param id
+    *   The ID of the item to retrieve.
+    * @return
+    *   A Task that resolves to an Option of the Item.
+    */
   def get(id: UUID): Task[Option[Item]]
 
-  /**
-   * Retrieves all items.
-   * @return A Task that resolves to a sequence of all items.
-   */
+  /** Retrieves all items.
+    * @return
+    *   A Task that resolves to a sequence of all items.
+    */
   def getAll: Task[Seq[Item]]
 
-
-  /**
-   * Searches for items based on a query.
-   * @param query The search query.
-   * @return A Task that resolves to a sequence of matching items.
-   */
+  /** Searches for items based on a query.
+    * @param query
+    *   The search query.
+    * @return
+    *   A Task that resolves to a sequence of matching items.
+    */
   def search(query: String): Task[Seq[Item]]
 
   def getByCategoryID(categoryId: UUID): Task[Seq[Item]]
@@ -54,4 +55,3 @@ object ItemRepo {
   def delete(id: UUID): ZIO[ItemRepo, Throwable, Unit] =
     ZIO.serviceWithZIO[ItemRepo](_.delete(id))
 }
-
