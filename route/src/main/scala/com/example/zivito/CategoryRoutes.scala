@@ -1,71 +1,42 @@
 package com.example.zivito
 
-import zio._
-import zio.json._
-import zhttp.http._
-import zhttp.http.Method._
+import zio.*
+import zio.json.{uuid as _, *}
+import zio.http.*
 import java.util.UUID
 
 object CategoryRoutes {
-  case class CreateCategoryRequest(name: String)
-  case class UpdateCategoryRequest(id: UUID, name: String)
-  
-  object CreateCategoryRequest {
-    implicit val decoder: JsonDecoder[CreateCategoryRequest] = DeriveJsonDecoder.gen[CreateCategoryRequest]
-  }
-  
-  object UpdateCategoryRequest {
-    implicit val decoder: JsonDecoder[UpdateCategoryRequest] = DeriveJsonDecoder.gen[UpdateCategoryRequest]
-  }
-  
-  def routes: HttpApp[CategoryService, Throwable] =
-    Http.collectZIO[Request] {
-      case req @ GET -> Root / "categories" =>
+  final case class CreateCategoryRequest(name: String) derives JsonDecoder
+  final case class UpdateCategoryRequest(id: UUID, name: String) derives JsonDecoder
+
+  val routes: Routes[CategoryService, Throwable] =
+    Routes(
+      Method.GET / "categories" -> handler { (_: Request) =>
+        ZIO.serviceWithZIO[CategoryService](_.getAllCategories.map(categories => Response.json(categories.toJson)))
+      },
+      Method.GET / "categories" / uuid("id") -> handler { (id: UUID, _: Request) =>
+        ZIO.serviceWithZIO[CategoryService](_.getCategory(id)).map {
+          case Some(value) => Response.json(value.toJson)
+          case None        => Response.status(Status.NotFound)
+        }
+      },
+      Method.POST / "categories" -> handler { (req: Request) =>
         for {
-          categories <- ZIO.serviceWithZIO[CategoryService](_.getAllCategories)
-          response = Response.json(categories.toJson)
-        } yield response
-        
-      case req @ GET -> Root / "categories" / id =>
+          body    <- req.body.asString
+          request <- ZIO.fromEither(body.fromJson[CreateCategoryRequest]).mapError(new RuntimeException(_))
+          id      <- Random.nextUUID
+          created <- ZIO.serviceWithZIO[CategoryService](_.createCategory(Domain.Category(id, request.name)))
+        } yield Response.json(created.toJson)
+      },
+      Method.PUT / "categories" -> handler { (req: Request) =>
         for {
-          categoryId <- ZIO.attempt(UUID.fromString(id))
-          category <- ZIO.serviceWithZIO[CategoryService](_.getCategory(categoryId))
-          response = category match {
-            case Some(category) => Response.json(category.toJson)
-            case None => Response.status(Status.NotFound)
-          }
-        } yield response
-        
-      case req @ POST -> Root / "categories" =>
-        for {
-          body <- req.bodyAsString
-          request <- ZIO.fromEither(body.fromJson[CreateCategoryRequest])
-          category = Domain.Category(
-            id = UUID.randomUUID(),
-            name = request.name
-          )
-          createdCategory <- ZIO.serviceWithZIO[CategoryService](_.createCategory(category))
-          response = Response.json(createdCategory.toJson)
-        } yield response
-        
-      case req @ PUT -> Root / "categories" =>
-        for {
-          body <- req.bodyAsString
-          request <- ZIO.fromEither(body.fromJson[UpdateCategoryRequest])
-          category = Domain.Category(
-            id = request.id,
-            name = request.name
-          )
-          updatedCategory <- ZIO.serviceWithZIO[CategoryService](_.updateCategory(category))
-          response = Response.json(updatedCategory.toJson)
-        } yield response
-        
-      case req @ DELETE -> Root / "categories" / id =>
-        for {
-          categoryId <- ZIO.attempt(UUID.fromString(id))
-          deleted <- ZIO.serviceWithZIO[CategoryService](_.deleteCategory(categoryId))
-          response = if (deleted) Response.ok else Response.status(Status.NotFound)
-        } yield response
-    }
-  }
+          body    <- req.body.asString
+          request <- ZIO.fromEither(body.fromJson[UpdateCategoryRequest]).mapError(new RuntimeException(_))
+          updated <- ZIO.serviceWithZIO[CategoryService](_.updateCategory(Domain.Category(request.id, request.name)))
+        } yield Response.json(updated.toJson)
+      },
+      Method.DELETE / "categories" / uuid("id") -> handler { (id: UUID, _: Request) =>
+        ZIO.serviceWithZIO[CategoryService](_.deleteCategory(id)).map(deleted => if (deleted) Response.ok else Response.status(Status.NotFound))
+      }
+    )
 }

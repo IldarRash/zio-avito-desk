@@ -5,6 +5,7 @@ export interface Item {
     price: number;
     categoryId: string;
     location: string;
+    imageUrl: string;
 }
 
 export interface Category {
@@ -14,7 +15,11 @@ export interface Category {
 
 export interface CreateItemRequest {
   name: string;
+  description: string;
+  price: number;
   categoryId: string;
+  location: string;
+  imageUrl?: string;
 }
 
 export interface UpdateItemRequest {

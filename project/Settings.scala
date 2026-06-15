@@ -5,18 +5,14 @@ object Settings {
 
   val commonSettings = {
     Seq(
-      scalaVersion := "2.13.6",
+      scalaVersion := "3.3.8",
       scalacOptions := Seq(
-        "-Ymacro-annotations",
         "-deprecation",
-        "-encoding", "utf-8",
-        "-explaintypes",
         "-feature",
         "-unchecked",
-        "-language:postfixOps",
-        "-language:higherKinds",
-        "-language:implicitConversions",
-        "-Xcheckinit",
+        "-encoding",
+        "utf-8",
+        "-Wunused:all",
         "-Xfatal-warnings"
       ),
       logLevel := Level.Debug,
@@ -28,8 +24,9 @@ object Settings {
   }
 
   val domain = List(json)
-  val repos = List(quillJdbc, quillZio, h2)
+  val repos = List(quillJdbc, h2)
   val core = List(zioCore, zioStreams)
+  val coreWithTest = core ++ List(zioTest, zioTestSbt)
   val httpRoutes = List(http) ++ core
-  val server = List(zioConfig)
+  val server = List.empty
 }

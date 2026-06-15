@@ -1,26 +1,21 @@
 package com.example.zivito
 
-import zio._
-import zhttp.http._
-import zhttp.service.Server
-import zio.config._
-import zio.config.typesafe._
+import zio.*
+import zio.http.*
+import io.getquill.jdbczio.Quill
 
 object Main extends ZIOAppDefault {
 
+  private val routes = ItemRoutes.routes ++ CategoryRoutes.routes
+
   override def run: ZIO[Any, Throwable, Nothing] =
-    (for {
-      _ <- ZIO.logInfo("Starting server on port 8080")
-      _ <- Server.start(
-        port = 8080,
-        http = ItemRoutes.routes ++ CategoryRoutes.routes
-      )
-    } yield ()).provide(
+    (ZIO.logInfo("Starting server on port 8080") *>
+      Server.serve(routes.handleError(e => Response.internalServerError(e.getMessage)))).provide(
+      Server.defaultWithPort(8080),
       ItemServiceImpl.layer,
       ItemRepoPersist.layer,
       CategoryServiceImpl.layer,
-      zio.Scope.default,
-      // Change to your own database settings
-      DataSourceLayer.fromPrefix("App")
+      CategoryRepoPersist.layer,
+      Quill.DataSource.fromPrefix("App")
     )
 }
