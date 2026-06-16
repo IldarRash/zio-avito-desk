@@ -1,3 +1,5 @@
+export type CategoryLookup = (categoryId: string) => string;
+
 const priceFormatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',

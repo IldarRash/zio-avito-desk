@@ -9,6 +9,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: avito
+          POSTGRES_PASSWORD: avito
+          POSTGRES_DB: avito_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U avito"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/avito_test
+      DB_USER: avito
+      DB_PASSWORD: avito
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -17,6 +38,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
       - name: Check formatting
         run: sbt scalafmtCheckAll
       - name: Compile

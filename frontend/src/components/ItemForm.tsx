@@ -1,10 +1,14 @@
-import React, {useState} from 'react';
-import {Category, CreateItemRequest} from '../types/api';
+import React, {useEffect, useState} from 'react';
+import {Category, Item, ItemRequest} from '../types/api';
+import {api} from '../services/api';
 import Modal from './Modal';
 
-interface CreateItemFormProps {
+interface ItemFormProps {
     categories: Category[];
-    onCreated: () => void;
+    /** When provided the form is in edit mode and prefills from this item. */
+    item?: Item;
+    /** Called with the resulting item after a successful create/edit (+ upload). */
+    onSaved: (item: Item) => void;
     onClose: () => void;
 }
 
@@ -14,18 +18,38 @@ interface FieldErrors {
     price?: string;
     location?: string;
     categoryId?: string;
+    image?: string;
 }
 
-function CreateItemForm({categories, onCreated, onClose}: CreateItemFormProps) {
-    const [name, setName] = useState<string>('');
-    const [description, setDescription] = useState<string>('');
-    const [price, setPrice] = useState<string>('');
-    const [location, setLocation] = useState<string>('');
-    const [imageUrl, setImageUrl] = useState<string>('');
-    const [categoryId, setCategoryId] = useState<string>('');
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
+function ItemForm({categories, item, onSaved, onClose}: ItemFormProps) {
+    const isEdit = item !== undefined;
+    const [name, setName] = useState<string>(item?.name ?? '');
+    const [description, setDescription] = useState<string>(item?.description ?? '');
+    const [price, setPrice] = useState<string>(item ? String(item.price) : '');
+    const [location, setLocation] = useState<string>(item?.location ?? '');
+    const [categoryId, setCategoryId] = useState<string>(item?.categoryId ?? '');
+    const [file, setFile] = useState<File | null>(null);
+    const [preview, setPreview] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+    // Build/cleanup an object URL for the chosen file preview.
+    useEffect(() => {
+        if (!file) {
+            setPreview(null);
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
+
+    const existingImage = item && item.imageUrl.length > 0 ? item.imageUrl : null;
+    const shownImage = preview ?? existingImage;
 
     const validate = (): FieldErrors => {
         const errors: FieldErrors = {};
@@ -50,48 +74,65 @@ function CreateItemForm({categories, onCreated, onClose}: CreateItemFormProps) {
         return errors;
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const chosen = e.target.files?.[0] ?? null;
+        if (!chosen) {
+            setFile(null);
+            return;
+        }
+        if (!ACCEPTED_TYPES.includes(chosen.type)) {
+            setFieldErrors(prev => ({...prev, image: 'Use a PNG, JPEG, WebP or GIF image'}));
+            setFile(null);
+            return;
+        }
+        if (chosen.size > MAX_IMAGE_BYTES) {
+            setFieldErrors(prev => ({...prev, image: 'Image must be 5MB or smaller'}));
+            setFile(null);
+            return;
+        }
+        setFieldErrors(prev => ({...prev, image: undefined}));
+        setFile(chosen);
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setError(null);
-
         const errors = validate();
         setFieldErrors(errors);
-        if (Object.keys(errors).length > 0) {
+        if (Object.keys(errors).some(k => errors[k as keyof FieldErrors])) {
             return;
         }
 
-        const trimmedImageUrl = imageUrl.trim();
-        const payload: CreateItemRequest = {
+        const payload: ItemRequest = {
             name: name.trim(),
             description: description.trim(),
             price: Number(price),
             categoryId,
             location: location.trim(),
-            ...(trimmedImageUrl ? {imageUrl: trimmedImageUrl} : {}),
         };
 
         setSubmitting(true);
-        fetch('/items', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload),
-        })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`Failed to create item (${res.status})`);
-                }
-                onCreated();
-            })
-            .catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : 'Failed to create item');
-            })
-            .finally(() => setSubmitting(false));
+        try {
+            const saved = isEdit
+                ? await api.updateItem(item.id, payload)
+                : await api.createItem(payload);
+            const finalItem = file ? await api.uploadImage(saved.id, file) : saved;
+            onSaved(finalItem);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to save ad');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
+    const title = isEdit ? 'Edit your ad' : 'Post a new ad';
+
     return (
-        <Modal title="Post a new ad" onClose={onClose} className="modal--form">
-            <h2 className="form__title">Post a new ad</h2>
-            <p className="form__subtitle">Fill in the details to list your item.</p>
+        <Modal title={title} onClose={onClose} className="modal--form">
+            <h2 className="form__title">{title}</h2>
+            <p className="form__subtitle">
+                {isEdit ? 'Update the details of your listing.' : 'Fill in the details to list your item.'}
+            </p>
 
             {error && <div className="banner banner--error" role="alert">{error}</div>}
 
@@ -174,15 +215,20 @@ function CreateItemForm({categories, onCreated, onClose}: CreateItemFormProps) {
                 </div>
 
                 <div className="field">
-                    <label className="field__label" htmlFor="ad-image">Image URL <span className="field__optional">(optional)</span></label>
+                    <label className="field__label" htmlFor="ad-image">
+                        Photo <span className="field__optional">(optional, max 5MB)</span>
+                    </label>
+                    {shownImage && (
+                        <img className="image-preview" src={shownImage} alt="Ad preview" />
+                    )}
                     <input
                         id="ad-image"
-                        type="url"
-                        className="field__input"
-                        value={imageUrl}
-                        onChange={e => setImageUrl(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
+                        type="file"
+                        className="field__file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={handleFileChange}
                     />
+                    {fieldErrors.image && <span className="field__error">{fieldErrors.image}</span>}
                 </div>
 
                 <div className="form__actions">
@@ -192,8 +238,11 @@ function CreateItemForm({categories, onCreated, onClose}: CreateItemFormProps) {
                     <button type="submit" className="btn btn--primary" disabled={submitting}>
                         {submitting ? (
                             <>
-                                <span className="spinner spinner--sm" aria-hidden="true" /> Posting…
+                                <span className="spinner spinner--sm" aria-hidden="true" />{' '}
+                                {isEdit ? 'Saving…' : 'Posting…'}
                             </>
+                        ) : isEdit ? (
+                            'Save changes'
                         ) : (
                             'Publish ad'
                         )}
@@ -204,4 +253,4 @@ function CreateItemForm({categories, onCreated, onClose}: CreateItemFormProps) {
     );
 }
 
-export default CreateItemForm;
+export default ItemForm;

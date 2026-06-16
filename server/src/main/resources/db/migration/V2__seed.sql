@@ -1,27 +1,16 @@
-CREATE TABLE IF NOT EXISTS "CategoryTable" (
-  "id" UUID PRIMARY KEY,
-  "name" VARCHAR(255) NOT NULL
-);
+-- Demo seed data. Idempotent via ON CONFLICT so re-running on an existing
+-- database is a no-op.
 
-CREATE TABLE IF NOT EXISTS "ItemTable" (
-  "id" UUID PRIMARY KEY,
-  "name" VARCHAR(255) NOT NULL,
-  "description" VARCHAR(2000) NOT NULL,
-  "price" DECIMAL(20, 2) NOT NULL,
-  "categoryId" UUID NOT NULL,
-  "location" VARCHAR(255) NOT NULL,
-  "imageUrl" VARCHAR(1000) NOT NULL
-);
-
-MERGE INTO "CategoryTable" ("id", "name") VALUES
+INSERT INTO "CategoryTable" ("id", "name") VALUES
   ('11111111-1111-1111-1111-111111111111', 'Electronics'),
   ('22222222-2222-2222-2222-222222222222', 'Furniture'),
   ('33333333-3333-3333-3333-333333333333', 'Vehicles'),
   ('44444444-4444-4444-4444-444444444444', 'Real Estate'),
   ('55555555-5555-5555-5555-555555555555', 'Fashion'),
-  ('66666666-6666-6666-6666-666666666666', 'Sports & Outdoors');
+  ('66666666-6666-6666-6666-666666666666', 'Sports & Outdoors')
+ON CONFLICT ("id") DO NOTHING;
 
-MERGE INTO "ItemTable" ("id", "name", "description", "price", "categoryId", "location", "imageUrl") VALUES
+INSERT INTO "ItemTable" ("id", "name", "description", "price", "categoryId", "location", "imageUrl") VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'iPhone 14 Pro',        'Used iPhone 14 Pro 256GB in great condition, battery health 92%, includes original box and charger.', 650.00,   '11111111-1111-1111-1111-111111111111', 'New York',       'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&q=80&auto=format&fit=crop'),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'MacBook Pro 16"',      '16-inch MacBook Pro with M2 Pro chip, 32GB RAM, 1TB SSD. Barely used, perfect for developers.',        1800.00,  '11111111-1111-1111-1111-111111111111', 'San Francisco',  'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80&auto=format&fit=crop'),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'Sony WH-1000XM5',      'Noise-cancelling over-ear headphones with 30h battery life. Like new, smoke-free home.',              280.00,   '11111111-1111-1111-1111-111111111111', 'Austin',         'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80&auto=format&fit=crop'),
@@ -36,4 +25,5 @@ MERGE INTO "ItemTable" ("id", "name", "description", "price", "categoryId", "loc
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Leather Biker Jacket', 'Genuine leather biker jacket, size M, worn a handful of times. Timeless style.',                       160.00,   '55555555-5555-5555-5555-555555555555', 'Brooklyn',       'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80&auto=format&fit=crop'),
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'White Sneakers',       'Classic white leather sneakers, size 10, lightly worn, freshly cleaned.',                              75.00,    '55555555-5555-5555-5555-555555555555', 'Atlanta',        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80&auto=format&fit=crop'),
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee3', 'Automatic Watch',      'Stainless steel automatic watch with sapphire crystal and leather strap. Keeps great time.',           240.00,   '55555555-5555-5555-5555-555555555555', 'Houston',        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80&auto=format&fit=crop'),
-  ('ffffffff-ffff-ffff-ffff-fffffffffff1', '4-Person Tent',        'Waterproof 4-person dome tent, used on two trips, packs down small. Perfect for weekend camping.',     120.00,   '66666666-6666-6666-6666-666666666666', 'Salt Lake City', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80&auto=format&fit=crop');
+  ('ffffffff-ffff-ffff-ffff-fffffffffff1', '4-Person Tent',        'Waterproof 4-person dome tent, used on two trips, packs down small. Perfect for weekend camping.',     120.00,   '66666666-6666-6666-6666-666666666666', 'Salt Lake City', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80&auto=format&fit=crop')
+ON CONFLICT ("id") DO NOTHING;

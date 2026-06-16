@@ -3,57 +3,31 @@ package com.example.zivito
 import zio._
 import java.util.UUID
 
+import com.example.zivito.Domain.{Item, ItemFilter, Page}
+
 trait ItemService {
 
-  /** Creates a new item.
-    *
-    * @param item
-    *   The item to create.
-    * @return
-    *   The created item.
-    */
-  def create(item: Domain.Item): Task[Domain.Item]
+  /** Creates a new item. */
+  def create(item: Item): Task[Item]
 
-  /** Retrieves an item by its ID.
-    *
-    * @param id
-    *   The ID of the item to retrieve.
-    * @return
-    *   An optional item.
-    */
-  def get(id: UUID): Task[Option[Domain.Item]]
+  /** Updates an existing item; `None` if no item has that id. */
+  def update(item: Item): Task[Option[Item]]
 
-  /** Retrieves all items.
-    *
-    * @return
-    *   A list of all items.
-    */
-  def getAll: Task[List[Domain.Item]]
+  /** Retrieves an item by its ID. */
+  def get(id: UUID): Task[Option[Item]]
 
-  /** Searches for items based on a query.
-    *
-    * @param query
-    *   The search query.
-    * @return
-    *   A list of items matching the query.
-    */
-  def search(query: String): Task[List[Domain.Item]]
+  /** Lists items matching the filter, sorted and paginated, with a total count. */
+  def list(filter: ItemFilter): Task[Page[Item]]
 
-  /** Deletes an item by its ID.
-    *
-    * @param id
-    *   The ID of the item to delete.
-    * @return
-    *   A boolean indicating whether the item was deleted.
-    */
-  def delete(id: UUID): Task[Unit]
+  /** Retrieves all items (unpaginated). */
+  def getAll: Task[List[Item]]
 
-  /** Retrieves all items in a given category.
-    *
-    * @param categoryId
-    *   The ID of the category.
-    * @return
-    *   A list of items in the category.
-    */
-  def getItemsByCategory(categoryId: UUID): Task[List[Domain.Item]]
+  /** Searches items by name/description. */
+  def search(query: String): Task[List[Item]]
+
+  /** Retrieves all items in a given category. */
+  def getItemsByCategory(categoryId: UUID): Task[List[Item]]
+
+  /** Deletes an item, returning whether it existed. */
+  def delete(id: UUID): Task[Boolean]
 }

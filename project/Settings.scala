@@ -15,8 +15,8 @@ object Settings {
         "-Wunused:all",
         "-Xfatal-warnings"
       ),
-      logLevel := Level.Debug,
-      version := (version in ThisBuild).value,
+      logLevel := Level.Info,
+      version := (ThisBuild / version).value,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       javaOptions += "-Dlogback.configurationFile=/src/resources/logback.xml",
       resolvers += Resolver.sonatypeRepo("snapshots")
@@ -24,9 +24,9 @@ object Settings {
   }
 
   val domain = List(json)
-  val repos = List(quillJdbc, h2)
+  val repos = List(quillJdbc, postgres) ++ List(zioTest, zioTestSbt, testcontainersPg)
   val core = List(zioCore, zioStreams)
-  val coreWithTest = core ++ List(zioTest, zioTestSbt)
-  val httpRoutes = List(http) ++ core
-  val server = List.empty
+  val coreWithTest = core ++ List(bcrypt, zioTest, zioTestSbt)
+  val httpRoutes = List(http) ++ core ++ List(zioTest, zioTestSbt)
+  val server = List(flyway, flywayPostgres, postgres)
 }

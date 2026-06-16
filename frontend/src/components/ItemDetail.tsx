@@ -1,16 +1,20 @@
 import React, {useEffect, useState} from 'react';
 import {Item} from '../types/api';
-import {CategoryLookup} from '../App';
-import {formatPrice, initialOf, placeholderStyle} from '../lib/format';
+import {CategoryLookup, formatPrice, initialOf, placeholderStyle} from '../lib/format';
+import {api} from '../services/api';
 import Modal from './Modal';
 
 interface ItemDetailProps {
     itemId: string;
     categoryName: CategoryLookup;
+    /** Current user id, or null when logged out, to decide owner controls. */
+    currentUserId: string | null;
+    onEdit: (item: Item) => void;
+    onDelete: (id: string) => void;
     onClose: () => void;
 }
 
-function ItemDetail({itemId, categoryName, onClose}: ItemDetailProps) {
+function ItemDetail({itemId, categoryName, currentUserId, onEdit, onDelete, onClose}: ItemDetailProps) {
     const [item, setItem] = useState<Item | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -21,32 +25,27 @@ function ItemDetail({itemId, categoryName, onClose}: ItemDetailProps) {
         setLoading(true);
         setError(null);
         setImageFailed(false);
-        fetch(`/items/${itemId}`)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`Failed to load item (${res.status})`);
-                }
-                return res.json() as Promise<Item>;
-            })
+        api.getItem(itemId)
             .then(data => {
-                if (active) {
-                    setItem(data);
-                }
+                if (active) setItem(data);
             })
             .catch((err: unknown) => {
-                if (active) {
-                    setError(err instanceof Error ? err.message : 'Failed to load item');
-                }
+                if (active) setError(err instanceof Error ? err.message : 'Failed to load item');
             })
             .finally(() => {
-                if (active) {
-                    setLoading(false);
-                }
+                if (active) setLoading(false);
             });
         return () => {
             active = false;
         };
     }, [itemId]);
+
+    const owned = item !== null && currentUserId !== null && item.ownerId === currentUserId;
+
+    const formattedDate = (iso: string): string => {
+        const date = new Date(iso);
+        return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString();
+    };
 
     return (
         <Modal title={item ? item.name : 'Ad details'} onClose={onClose} className="modal--detail">
@@ -87,10 +86,33 @@ function ItemDetail({itemId, categoryName, onClose}: ItemDetailProps) {
 
                     <p className="detail__desc">{item.description}</p>
 
+                    {owned && (
+                        <div className="detail__actions">
+                            <button
+                                type="button"
+                                className="btn btn--ghost"
+                                onClick={() => onEdit(item)}
+                            >
+                                ✏️ Edit
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn--danger"
+                                onClick={() => onDelete(item.id)}
+                            >
+                                🗑 Delete
+                            </button>
+                        </div>
+                    )}
+
                     <dl className="detail__meta">
                         <div className="detail__row">
                             <dt>Category</dt>
                             <dd>{categoryName(item.categoryId)}</dd>
+                        </div>
+                        <div className="detail__row">
+                            <dt>Posted</dt>
+                            <dd>{formattedDate(item.createdAt)}</dd>
                         </div>
                         <div className="detail__row">
                             <dt>Ad ID</dt>

@@ -11,7 +11,7 @@ case class CategoryTable(id: UUID, name: String)
 
 case class CategoryRepoPersist(ds: DataSource) extends CategoryRepo {
 
-  val ctx = new H2ZioJdbcContext(Escape)
+  val ctx = new PostgresZioJdbcContext(Escape)
 
   import ctx.*
 

@@ -1,65 +1,121 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import './App.css';
-import {Category, Item} from './types/api';
+import {Category, Item, ItemQuery} from './types/api';
+import {CategoryLookup} from './lib/format';
+import {api} from './services/api';
+import {useAuth} from './context/AuthContext';
+import Navbar from './components/Navbar';
+import CategoryRail from './components/CategoryRail';
+import FilterBar, {Filters} from './components/FilterBar';
 import ItemCard from './components/ItemCard';
 import ItemDetail from './components/ItemDetail';
-import CreateItemForm from './components/CreateItemForm';
+import ItemForm from './components/ItemForm';
+import AuthForm, {AuthMode} from './components/AuthForm';
 
-export type CategoryLookup = (categoryId: string) => string;
+const PAGE_SIZE = 24;
+const MY_LISTINGS_LIMIT = 100;
+
+const DEFAULT_FILTERS: Filters = {
+    minPrice: '',
+    maxPrice: '',
+    location: '',
+    sort: 'newest',
+};
+
+type FormState = {mode: 'create'} | {mode: 'edit'; item: Item};
+
+function parsePrice(value: string): number | undefined {
+    const trimmed = value.trim();
+    if (trimmed === '') return undefined;
+    const n = Number(trimmed);
+    return Number.isNaN(n) ? undefined : n;
+}
 
 function App() {
+    const {user} = useAuth();
+
     const [items, setItems] = useState<Item[]>([]);
+    const [total, setTotal] = useState<number>(0);
     const [categories, setCategories] = useState<Category[]>([]);
+
     const [search, setSearch] = useState<string>('');
     const [activeQuery, setActiveQuery] = useState<string>('');
+    const [categoryId, setCategoryId] = useState<string | null>(null);
+    const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+    const [page, setPage] = useState<number>(0);
+    const [mine, setMine] = useState<boolean>(false);
+
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [createOpen, setCreateOpen] = useState<boolean>(false);
+    const [formState, setFormState] = useState<FormState | null>(null);
+    const [authMode, setAuthMode] = useState<AuthMode | null>(null);
+
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    const loadItems = useCallback((url: string): void => {
+    // Reset pagination whenever any board input changes.
+    useEffect(() => {
+        setPage(0);
+    }, [activeQuery, categoryId, filters, mine]);
+
+    // Logging out while viewing "My listings" returns to the full board.
+    useEffect(() => {
+        if (!user && mine) {
+            setMine(false);
+        }
+    }, [user, mine]);
+
+    const loadItems = useCallback((): (() => void) => {
+        let active = true;
         setLoading(true);
         setError(null);
-        fetch(url)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`Failed to load items (${res.status})`);
+
+        const query: ItemQuery = mine
+            ? {limit: MY_LISTINGS_LIMIT, offset: 0, sort: filters.sort}
+            : {
+                  q: activeQuery,
+                  categoryId: categoryId ?? undefined,
+                  minPrice: parsePrice(filters.minPrice),
+                  maxPrice: parsePrice(filters.maxPrice),
+                  location: filters.location,
+                  sort: filters.sort,
+                  limit: PAGE_SIZE,
+                  offset: page * PAGE_SIZE,
+              };
+
+        api.listItems(query)
+            .then(result => {
+                if (!active) return;
+                if (mine && user) {
+                    const owned = result.items.filter(item => item.ownerId === user.id);
+                    setItems(owned);
+                    setTotal(owned.length);
+                } else {
+                    setItems(result.items);
+                    setTotal(result.total);
                 }
-                return res.json() as Promise<Item[]>;
             })
-            .then(setItems)
             .catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : 'Failed to load items');
+                if (active) setError(err instanceof Error ? err.message : 'Failed to load ads');
             })
-            .finally(() => setLoading(false));
-    }, []);
+            .finally(() => {
+                if (active) setLoading(false);
+            });
 
-    const refresh = useCallback((): void => {
-        setActiveQuery('');
-        setSearch('');
-        loadItems('/items');
-    }, [loadItems]);
+        return () => {
+            active = false;
+        };
+    }, [activeQuery, categoryId, filters, page, mine, user]);
 
-    useEffect(() => {
-        loadItems('/items');
-    }, [loadItems]);
+    useEffect(() => loadItems(), [loadItems]);
 
     useEffect(() => {
         let active = true;
-        fetch('/categories')
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`Failed to load categories (${res.status})`);
-                }
-                return res.json() as Promise<Category[]>;
-            })
+        api.listCategories()
             .then(data => {
-                if (active) {
-                    setCategories(data);
-                }
+                if (active) setCategories(data);
             })
             .catch(() => {
-                /* Categories are non-fatal: cards fall back to the raw id. */
+                /* Categories are non-fatal: cards fall back to a default label. */
             });
         return () => {
             active = false;
@@ -71,79 +127,93 @@ function App() {
         return (id: string) => map.get(id) ?? 'Uncategorized';
     }, [categories]);
 
-    const submitSearch = (e: React.FormEvent<HTMLFormElement>): void => {
-        e.preventDefault();
-        const query = search.trim();
-        setActiveQuery(query);
-        loadItems(query ? `/items/search/${encodeURIComponent(query)}` : '/items');
-    };
+    const goHome = useCallback((): void => {
+        setActiveQuery('');
+        setSearch('');
+        setCategoryId(null);
+        setFilters(DEFAULT_FILTERS);
+        setMine(false);
+    }, []);
+
+    const submitSearch = (): void => setActiveQuery(search.trim());
 
     const deleteItem = (id: string): void => {
         setError(null);
-        fetch(`/items/${id}`, {method: 'DELETE'})
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`Failed to delete item (${res.status})`);
-                }
+        api.deleteItem(id)
+            .then(() => {
                 setItems(prev => prev.filter(item => item.id !== id));
+                setTotal(prev => Math.max(0, prev - 1));
+                setSelectedId(prev => (prev === id ? null : prev));
             })
             .catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : 'Failed to delete item');
+                setError(err instanceof Error ? err.message : 'Failed to delete ad');
             });
     };
 
-    const handleCreated = (): void => {
-        setCreateOpen(false);
-        refresh();
+    const handleSaved = (saved: Item): void => {
+        setFormState(null);
+        // Refetch so ordering/filters stay consistent with the backend.
+        loadItems();
+        setSelectedId(prev => (prev === saved.id ? saved.id : prev));
     };
+
+    const openEdit = (item: Item): void => {
+        setSelectedId(null);
+        setFormState({mode: 'edit', item});
+    };
+
+    const showingMine = mine && user !== null;
+    const hasMore = !showingMine && items.length < total;
+
+    const headingTitle = showingMine
+        ? 'My listings'
+        : activeQuery
+          ? 'Search results'
+          : categoryId
+            ? categoryName(categoryId)
+            : 'Fresh on the market';
+
+    const headingSubtitle = showingMine
+        ? 'Ads you have posted.'
+        : activeQuery
+          ? `Showing matches for “${activeQuery}”`
+          : 'Browse the latest classified ads from the community.';
 
     return (
         <div className="app">
-            <header className="navbar">
-                <div className="navbar__inner">
-                    <button
-                        type="button"
-                        className="brand"
-                        onClick={refresh}
-                        aria-label="Avito Desk home"
-                    >
-                        <span className="brand__mark" aria-hidden="true">A</span>
-                        <span className="brand__name">Avito&nbsp;Desk</span>
-                    </button>
-
-                    <form className="searchbar" onSubmit={submitSearch} role="search">
-                        <span className="searchbar__icon" aria-hidden="true">⌕</span>
-                        <input
-                            type="search"
-                            className="searchbar__input"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search ads…"
-                            aria-label="Search ads"
-                        />
-                        <button type="submit" className="searchbar__submit">Search</button>
-                    </form>
-
-                    <button
-                        type="button"
-                        className="btn btn--primary navbar__cta"
-                        onClick={() => setCreateOpen(true)}
-                    >
-                        <span aria-hidden="true">＋</span> New ad
-                    </button>
-                </div>
-            </header>
+            <Navbar
+                search={search}
+                onSearchChange={setSearch}
+                onSearchSubmit={submitSearch}
+                onHome={goHome}
+                onNewAd={() => setFormState({mode: 'create'})}
+                onOpenAuth={setAuthMode}
+            />
 
             <main className="page">
+                <CategoryRail categories={categories} activeId={categoryId} onSelect={setCategoryId} />
+
+                <div className="board__bar">
+                    <FilterBar
+                        filters={filters}
+                        onChange={setFilters}
+                        onReset={() => setFilters(DEFAULT_FILTERS)}
+                    />
+                    {user && (
+                        <button
+                            type="button"
+                            className={`btn ${showingMine ? 'btn--primary' : 'btn--ghost'}`}
+                            onClick={() => setMine(m => !m)}
+                            aria-pressed={showingMine}
+                        >
+                            {showingMine ? 'Viewing my listings' : 'My listings'}
+                        </button>
+                    )}
+                </div>
+
                 <div className="page__heading">
-                    <h1 className="page__title">
-                        {activeQuery ? 'Search results' : 'Fresh on the market'}
-                    </h1>
-                    <p className="page__subtitle">
-                        {activeQuery
-                            ? `Showing matches for “${activeQuery}”`
-                            : 'Browse the latest classified ads from the community.'}
-                    </p>
+                    <h1 className="page__title">{headingTitle}</h1>
+                    <p className="page__subtitle">{headingSubtitle}</p>
                 </div>
 
                 {error && <div className="banner banner--error" role="alert">{error}</div>}
@@ -165,39 +235,55 @@ function App() {
                     <div className="empty">
                         <div className="empty__art" aria-hidden="true">🗂️</div>
                         <h2 className="empty__title">
-                            {activeQuery ? 'No ads match your search' : 'No ads yet'}
+                            {showingMine ? "You haven't posted any ads" : 'No ads found'}
                         </h2>
                         <p className="empty__text">
-                            {activeQuery
-                                ? 'Try a different keyword, or clear the search to see everything.'
-                                : 'Be the first to post — list something you no longer need.'}
+                            {showingMine
+                                ? 'Post your first ad — list something you no longer need.'
+                                : 'Try different keywords or clear your filters to see everything.'}
                         </p>
-                        {activeQuery ? (
-                            <button type="button" className="btn btn--ghost" onClick={refresh}>
-                                Clear search
-                            </button>
-                        ) : (
+                        {showingMine ? (
                             <button
                                 type="button"
                                 className="btn btn--primary"
-                                onClick={() => setCreateOpen(true)}
+                                onClick={() => setFormState({mode: 'create'})}
                             >
-                                <span aria-hidden="true">＋</span> Post the first ad
+                                <span aria-hidden="true">＋</span> Post an ad
+                            </button>
+                        ) : (
+                            <button type="button" className="btn btn--ghost" onClick={goHome}>
+                                Clear filters
                             </button>
                         )}
                     </div>
                 ) : (
-                    <ul className="grid">
-                        {items.map(item => (
-                            <ItemCard
-                                key={item.id}
-                                item={item}
-                                categoryName={categoryName(item.categoryId)}
-                                onSelect={setSelectedId}
-                                onDelete={deleteItem}
-                            />
-                        ))}
-                    </ul>
+                    <>
+                        <ul className="grid">
+                            {items.map(item => (
+                                <ItemCard
+                                    key={item.id}
+                                    item={item}
+                                    categoryName={categoryName(item.categoryId)}
+                                    owned={user !== null && item.ownerId === user.id}
+                                    onSelect={setSelectedId}
+                                    onEdit={openEdit}
+                                    onDelete={deleteItem}
+                                />
+                            ))}
+                        </ul>
+
+                        {hasMore && (
+                            <div className="board__more">
+                                <button
+                                    type="button"
+                                    className="btn btn--ghost"
+                                    onClick={() => setPage(p => p + 1)}
+                                >
+                                    Load more ({items.length} of {total})
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </main>
 
@@ -205,16 +291,24 @@ function App() {
                 <ItemDetail
                     itemId={selectedId}
                     categoryName={categoryName}
+                    currentUserId={user?.id ?? null}
+                    onEdit={openEdit}
+                    onDelete={deleteItem}
                     onClose={() => setSelectedId(null)}
                 />
             )}
 
-            {createOpen && (
-                <CreateItemForm
+            {formState && (
+                <ItemForm
                     categories={categories}
-                    onCreated={handleCreated}
-                    onClose={() => setCreateOpen(false)}
+                    item={formState.mode === 'edit' ? formState.item : undefined}
+                    onSaved={handleSaved}
+                    onClose={() => setFormState(null)}
                 />
+            )}
+
+            {authMode && (
+                <AuthForm mode={authMode} onClose={() => setAuthMode(null)} onSwitchMode={setAuthMode} />
             )}
         </div>
     );

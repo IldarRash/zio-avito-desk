@@ -5,11 +5,14 @@ import {formatPrice, initialOf, placeholderStyle} from '../lib/format';
 interface ItemCardProps {
     item: Item;
     categoryName: string;
+    /** When true, owner-only Edit/Delete controls are shown. */
+    owned: boolean;
     onSelect: (id: string) => void;
+    onEdit: (item: Item) => void;
     onDelete: (id: string) => void;
 }
 
-function ItemCard({item, categoryName, onSelect, onDelete}: ItemCardProps) {
+function ItemCard({item, categoryName, owned, onSelect, onEdit, onDelete}: ItemCardProps) {
     const [confirming, setConfirming] = useState<boolean>(false);
     const [imageFailed, setImageFailed] = useState<boolean>(false);
 
@@ -30,6 +33,11 @@ function ItemCard({item, categoryName, onSelect, onDelete}: ItemCardProps) {
         } else {
             setConfirming(true);
         }
+    };
+
+    const handleEditClick = (e: React.MouseEvent<HTMLButtonElement>): void => {
+        e.stopPropagation();
+        onEdit(item);
     };
 
     const open = (): void => onSelect(item.id);
@@ -75,15 +83,28 @@ function ItemCard({item, categoryName, onSelect, onDelete}: ItemCardProps) {
                         <span className="card__location">
                             <span aria-hidden="true">📍</span> {item.location}
                         </span>
-                        <button
-                            type="button"
-                            className={`icon-btn icon-btn--danger${confirming ? ' is-confirming' : ''}`}
-                            onClick={handleDeleteClick}
-                            aria-label={confirming ? `Confirm delete ${item.name}` : `Delete ${item.name}`}
-                            title={confirming ? 'Click again to confirm' : 'Delete ad'}
-                        >
-                            {confirming ? 'Confirm?' : '🗑'}
-                        </button>
+                        {owned && (
+                            <span className="card__actions">
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={handleEditClick}
+                                    aria-label={`Edit ${item.name}`}
+                                    title="Edit ad"
+                                >
+                                    ✏️
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`icon-btn icon-btn--danger${confirming ? ' is-confirming' : ''}`}
+                                    onClick={handleDeleteClick}
+                                    aria-label={confirming ? `Confirm delete ${item.name}` : `Delete ${item.name}`}
+                                    title={confirming ? 'Click again to confirm' : 'Delete ad'}
+                                >
+                                    {confirming ? 'Confirm?' : '🗑'}
+                                </button>
+                            </span>
+                        )}
                     </div>
                 </div>
             </article>

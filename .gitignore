@@ -3,7 +3,10 @@ target/
 **/target/
 .bsp/
 
-# H2 database files (created at runtime)
+# Uploaded images (created at runtime)
+uploads/
+
+# Legacy H2 database files (no longer used; kept ignored for old checkouts)
 *.mv.db
 *.trace.db
 

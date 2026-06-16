@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: avito-postgres
+    environment:
+      POSTGRES_USER: avito
+      POSTGRES_PASSWORD: avito
+      POSTGRES_DB: avito
+    ports:
+      # Host port is overridable (POSTGRES_PORT) to avoid clashes with a local
+      # Postgres already bound to 5432. Container port is always 5432.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - avito-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avito"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  avito-pgdata:
